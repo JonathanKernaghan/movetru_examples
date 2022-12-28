@@ -67,7 +67,6 @@ def train_and_log_model(input_data: pd.DataFrame) -> None:
         input_data: Original input data.
     """
     X = input_data.drop(["species", "species_encoded"], axis=1)
-    X.info()
     y = input_data["species_encoded"]
 
     logger.info("Building model")
