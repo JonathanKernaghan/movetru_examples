@@ -34,7 +34,6 @@ def do_feature_engineering(input_data: pd.DataFrame) -> pd.DataFrame:
     Returns:
         A Pandas DataFrame of the feature data.
     """
-
     # Min max scale the total bill feature
     mix_max = MinMaxScaler()
     encoded = mix_max.fit_transform(input_data[["total_bill"]])
@@ -72,7 +71,7 @@ def train_and_log_model(input_data: pd.DataFrame) -> None:
 def build_model() -> LinearRegression:
     """Build the model.
     Returns:
-        The  model object.
+        The model object.
     """
     lr = LinearRegression()
     return lr
@@ -95,8 +94,8 @@ def evaluate_model(
     mean_mae = np.mean(scores["test_MAE"])
     mean_mse = np.mean(scores["test_MSE"])
 
-    logger.info("5-Fold Cross Validated MAE: {}".format(f"{mean_mae:.2f}"))
-    logger.info("5-Fold Cross Validated MSE: {}".format(f"{mean_mse:.2f}"))
+    logger.info("5-Fold Cross Validated MAE: {}".format(f"{mean_mae:.3f}"))
+    logger.info("5-Fold Cross Validated MSE: {}".format(f"{mean_mse:.3f}"))
 
 
 def run_pipeline() -> None:

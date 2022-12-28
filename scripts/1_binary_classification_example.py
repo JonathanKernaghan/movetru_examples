@@ -5,16 +5,9 @@ import logging
 from typing import Any
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_validate
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    f1_score,
-    accuracy_score,
-    confusion_matrix,
-    classification_report,
-)
-import matplotlib.pyplot as plt
-import json
+from sklearn.metrics import f1_score, accuracy_score, make_scorer
 import sys
 import requests
 
@@ -42,7 +35,6 @@ def do_feature_engineering(input_data: pd.DataFrame) -> pd.DataFrame:
     Returns:
         A Pandas DataFrame of the feature data.
     """
-
     # Create a SimpleImputer Class
     imputer = SimpleImputer(missing_values=np.NaN, strategy="median")
 
@@ -77,72 +69,62 @@ def train_and_log_model(input_data: pd.DataFrame) -> None:
     """
     X = input_data.drop(["sex", "sex_int", "species", "island"], axis=1)
     y = input_data["sex_int"]
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, stratify=y, test_size=0.2, random_state=0
-    )
 
     logger.info("Building model")
-    model = build_model(X_train, y_train)
+    model = build_model()
 
-    logger.info("Evaluating model metrics with training set")
-    evaluate_model(model, X_train, y_train, test=False)
-
-    logger.info("Evaluating model metrics with testing set")
-    evaluate_model(model, X_test, y_test, test=True)
+    logger.info("Evaluating model metrics with 5 fold cross validation")
+    evaluate_model(model, X, y)
 
 
-def build_model(X_train: pd.DataFrame, y_train: pd.Series) -> LogisticRegression:
+def build_model() -> LogisticRegression:
     """Build the model.
-    Args:
-        X_train: DataFrame with features to train.
-        y_train: Series with targets for training.
     Returns:
-        The trained model object.
+        The model object.
     """
-    lr = LogisticRegression()
-
-    # train model
-    lr.fit(X_train, y_train)
+    lr = LogisticRegression(max_iter=2500)
 
     return lr
 
 
-def save_json(obj, path):
-    with open(path, "w") as jf:
-        json.dump(obj, jf)
-
-
 def evaluate_model(
-    clf: Any, input_features: pd.DataFrame, target_variable: pd.DataFrame, test: bool
+    clf: Any, input_features: pd.DataFrame, target_variable: pd.DataFrame
 ) -> None:
     """Evaluate the model and calculate model performance metrics.
     Args:
         clf: the classifier model object
         input_features: input data
         target_variable: target variable - ground truth
-        test: if we are evaluating the model on the test set or not
     """
-    predictions = clf.predict(input_features)
-    accuracy = accuracy_score(target_variable, predictions)
-    f1 = f1_score(target_variable, predictions)
+    metrics = {
+        "accuracy": make_scorer(accuracy_score),
+        "f1": make_scorer(f1_score, average="micro"),
+    }
+    scores = cross_validate(
+        clf,
+        input_features,
+        target_variable,
+        cv=5,
+        scoring=metrics,
+        return_train_score=True,
+    )
+    mean_train_accuracy = scores["train_accuracy"].mean()
+    mean_train_f1 = scores["train_f1"].mean()
+    mean_test_accuracy = scores["test_accuracy"].mean()
+    mean_test_f1 = scores["test_f1"].mean()
 
-    logger.info("Accuracy {}".format(accuracy))
-    print("Accuracy =", accuracy)
-    logger.info("F1 Score {}".format(f1))
-    print("F1 Score =", f1)
-
-    if test:
-        cm = confusion_matrix(target_variable, predictions)
-        f = sns.heatmap(cm, annot=True).set(
-            title="Confusion Matrix for Test Data Predictions"
+    logger.info(
+        "5-Fold Cross Validated Training Accuracy: {}".format(
+            f"{mean_train_accuracy:.3f}"
         )
-        cm_path = "1_binary_classification_example_confusion_matrix.png"
-        logger.info("Saving confusion matrix to {}".format(cm_path))
-        plt.savefig(cm_path)
-        report_path = "1_binary_classification_example_report.json"
-        logger.info("Saving classification report matrix to {}".format(report_path))
-        report = classification_report(target_variable, predictions, output_dict=True)
-        save_json(report, report_path)
+    )
+    logger.info("5-Fold Cross Validated Training F1: {}".format(f"{mean_train_f1:.3f}"))
+    logger.info(
+        "5-Fold Cross Validated Testing Accuracy: {}".format(
+            f"{mean_test_accuracy:.3f}"
+        )
+    )
+    logger.info("5-Fold Cross Validated Testing F1: {}".format(f"{mean_test_f1:.3f}"))
 
 
 def run_pipeline() -> None:
