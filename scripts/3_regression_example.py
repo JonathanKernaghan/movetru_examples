@@ -1,3 +1,9 @@
+# * Copyright (C) Jonathan Kernaghan - All Rights Reserved
+# * Unauthorized copying of this file, via any medium is strictly prohibited
+# * Proprietary and confidential
+# * Written by Jonathan Kernaghan <jkernaghan272@gmail.com>, December 2022
+
+import json
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -59,7 +65,6 @@ def train_and_log_model(input_data: pd.DataFrame) -> None:
     """
     X = input_data.drop(["sex", "time", "smoker", "day", "tip", "total_bill"], axis=1)
     y = input_data["tip"]
-    print(X.head())
 
     logger.info("Building model")
     model = build_model()
@@ -96,6 +101,11 @@ def evaluate_model(
 
     logger.info("5-Fold Cross Validated MAE: {}".format(f"{mean_mae:.3f}"))
     logger.info("5-Fold Cross Validated MSE: {}".format(f"{mean_mse:.3f}"))
+
+    metrics = {"mean_mae": f"{mean_mae:.3f}", "mean_mse": f"{mean_mse:.3f}"}
+
+    with open("../results/3_regression_example_results.txt", "w") as convert_file:
+        convert_file.write(json.dumps(metrics))
 
 
 def run_pipeline() -> None:

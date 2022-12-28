@@ -11,8 +11,8 @@ import logging
 from typing import Any
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import cross_validate
-from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate, RandomizedSearchCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, accuracy_score, make_scorer
 import sys
 import requests
@@ -79,18 +79,52 @@ def train_and_log_model(input_data: pd.DataFrame) -> None:
     logger.info("Building model")
     model = build_model()
 
-    logger.info("Evaluating model metrics with 5 fold cross validation")
+    logger.info(
+        "Evaluating model metrics with 5 fold cross validation (will take a few minutes)"
+    )
     evaluate_model(model, X, y)
 
 
-def build_model() -> LogisticRegression:
+def build_model() -> RandomizedSearchCV:
     """Build the model.
     Returns:
         The model object.
     """
-    lr = LogisticRegression(max_iter=2500)
+    rf = RandomForestClassifier()
 
-    return lr
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start=200, stop=2000, num=10)]
+    # Number of features to consider at every split
+    max_features = ["sqrt"]
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [2, 5, 10]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1, 2, 4]
+    # Method of selecting samples for training each tree
+    bootstrap = [True, False]
+    # Create the random grid
+    random_grid = {
+        "n_estimators": n_estimators,
+        "max_features": max_features,
+        "max_depth": max_depth,
+        "min_samples_split": min_samples_split,
+        "min_samples_leaf": min_samples_leaf,
+        "bootstrap": bootstrap,
+    }
+
+    rf_random = RandomizedSearchCV(
+        estimator=rf,
+        param_distributions=random_grid,
+        n_iter=25,
+        verbose=1,
+        random_state=42,
+        n_jobs=-1,
+    )
+
+    return rf_random
 
 
 def evaluate_model(
@@ -106,8 +140,11 @@ def evaluate_model(
         "accuracy": make_scorer(accuracy_score),
         "f1": make_scorer(f1_score, average="micro"),
     }
+    result = clf.fit(input_features, target_variable)
+    best_model = result.best_estimator_
+
     scores = cross_validate(
-        clf,
+        best_model,
         input_features,
         target_variable,
         cv=5,
@@ -140,7 +177,7 @@ def evaluate_model(
     }
 
     with open(
-        "../results/1_binary_classification_example_results.txt", "w"
+        "../results/4_optimising_binary_classification_example_results.txt", "w"
     ) as convert_file:
         convert_file.write(json.dumps(metrics))
 

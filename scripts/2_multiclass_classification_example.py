@@ -1,3 +1,8 @@
+# * Copyright (C) Jonathan Kernaghan - All Rights Reserved
+# * Unauthorized copying of this file, via any medium is strictly prohibited
+# * Proprietary and confidential
+# * Written by Jonathan Kernaghan <jkernaghan272@gmail.com>, December 2022
+
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -125,6 +130,18 @@ def evaluate_model(
         )
     )
     logger.info("5-Fold Cross Validated Testing F1: {}".format(f"{mean_test_f1:.3f}"))
+
+    metrics = {
+        "mean_train_accuracy": f"{mean_train_accuracy:.3f}",
+        "mean_train_f": f"{mean_train_f1:.3f}",
+        "mean_test_accuracy": f"{mean_test_accuracy:.3f}",
+        "mean_test_f1": f"{mean_test_f1:.3f}",
+    }
+
+    with open(
+        "../results/2_multiclass_classification_example_results.txt", "w"
+    ) as convert_file:
+        convert_file.write(json.dumps(metrics))
 
 
 def run_pipeline() -> None:
