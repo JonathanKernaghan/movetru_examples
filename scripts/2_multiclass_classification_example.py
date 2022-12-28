@@ -86,10 +86,6 @@ def build_model() -> SVC:
     return svc
 
 
-def save_json(obj, path):
-    with open(path, "w") as jf:
-        json.dump(obj, jf)
-
 
 def evaluate_model(
     clf: Any, input_features: pd.DataFrame, target_variable: pd.DataFrame
