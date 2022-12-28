@@ -14,3 +14,5 @@ python 1_binary_classification_example.py run_pipeline
 python 2_multiclass_classification_example.py run_pipeline
 
 python 3_regression_example.py run_pipeline
+
+Ensure you are in the correct current directory when running the commands.
